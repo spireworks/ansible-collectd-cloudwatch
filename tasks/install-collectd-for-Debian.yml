@@ -1,0 +1,103 @@
+---
+- name: provision aws_credentials_for_collectd file.
+  template:
+    src: aws_credentials_for_collectd
+    dest: "{{ collectd_cloudwatch_credentials_path }}"
+  notify: restart collectd
+
+- name: install ppa package
+  apt_repository:
+    state: present
+    repo: ppa:collectd/collectd-5.5
+    update_cache: yes
+  become: yes
+  become_user: root
+  tags:
+    - collectd-cloudwatch
+
+- name: install collectd
+  apt:
+    state: present
+    name: collectd
+    update_cache: yes
+  become: yes
+  tags:
+    - collectd-cloudwatch
+
+- name: install pip
+  shell: "/usr/bin/python -m easy_install pip"
+  become: yes
+
+- name: install requests
+  shell: "/usr/bin/python -m easy_install requests"
+  become: yes
+
+- name: apply collectd-cloudwatch.conf
+  template:
+    src: collectd-cloudwatch.conf
+    dest: "{{ collectd_cloudwatch_cloudwatch_config_file_path }}"
+  notify: restart collectd
+  become: yes
+
+- name: create collectd-plugins directory
+  file:
+    state: directory
+    path: "{{ collectd_cloudwatch_module_path }}"
+  tags:
+    - collectd-cloudwatch-dirs
+  become: yes
+
+- name: install packages for unzip
+  apt:
+    state: present
+    name: "{{ item }}"
+  become: yes
+  with_items:
+    - zip
+    - unzip
+
+- name: unarchive zip file
+  unarchive:
+    copy: yes
+    src: collectd-plugins/collectd-cloudwatch-plugin.zip
+    dest: "{{ collectd_cloudwatch_module_path }}"
+  become: yes
+  tags:
+    - collectd-cloudwatch-zip
+
+- name: create collectd-plugins/cloudwatch/config directory
+  file:
+    state: directory
+    path: "{{ collectd_cloudwatch_module_path }}/cloudwatch/config"
+  become: yes
+  tags:
+    - collectd-cloudwatch-dirs
+
+- name: apply config files
+  template:
+    src: "{{ item }}"
+    dest: "{{ collectd_cloudwatch_module_path }}/cloudwatch/{{ item }}"
+  with_items:
+    - config/blocked_metrics
+    - config/plugin.conf
+    - config/whitelist.conf
+  notify: restart collectd
+  become: yes
+  tags:
+    - collectd-cloudwatch-config
+
+- name: apply main collectd.conf file
+  template:
+    src: collectd.conf
+    dest: "{{ collectd_cloudwatch_etc_path }}/collectd/collectd.conf"
+  notify: restart collectd
+  become: yes
+  tags:
+    - collectd-cloudwatch-main-config
+
+- name: ensure collectd is started and enabled on boot
+  service:
+    name: collectd
+    state: started
+    enabled: yes
+  become: yes

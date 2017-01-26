@@ -1,0 +1,10 @@
+---
+- name: restart collectd
+  service:
+    name: collectd
+    state: restarted
+  become: yes
+
+- name: restart brew collectd
+  shell: brew services restart collectd
+  become: yes

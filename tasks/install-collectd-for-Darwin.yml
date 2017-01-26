@@ -1,0 +1,84 @@
+---
+- name: provision aws_credentials_for_collectd file.
+  template:
+    src: aws_credentials_for_collectd
+    dest: "{{ collectd_cloudwatch_credentials_path }}"
+  notify: restart brew collectd
+
+- name: install collectd
+  homebrew:
+    name: collectd
+    state: latest
+    update_homebrew: yes
+
+- name: install python
+  homebrew:
+    name: python
+    state: present
+    update_homebrew: yes
+
+- name: install pip
+  shell: "/usr/bin/python -m easy_install pip"
+  become: yes
+
+- name: install pexpect
+  shell: "/usr/bin/python -m easy_install pexpect"
+  become: yes
+
+- name: install requests
+  shell: "/usr/bin/python -m easy_install requests"
+  become: yes
+
+- name: apply collectd-cloudwatch.conf
+  template:
+    src: collectd-cloudwatch.conf
+    dest: "{{ collectd_cloudwatch_cloudwatch_config_file_path }}"
+  notify: restart brew collectd
+
+- name: create collectd-plugins directory
+  file:
+    state: directory
+    path: "{{ collectd_cloudwatch_module_path }}"
+  tags:
+    - collectd-cloudwatch-dirs
+
+- name: unarchive zip file
+  unarchive:
+    copy: yes
+    src: collectd-plugins/collectd-cloudwatch-plugin.zip
+    dest: "{{ collectd_cloudwatch_module_path }}"
+  tags:
+    - collectd-cloudwatch-zip
+
+- name: create collectd-plugins/cloudwatch/config directory
+  file:
+    state: directory
+    path: "{{ collectd_cloudwatch_module_path }}/cloudwatch/config"
+  tags:
+    - collectd-cloudwatch-dirs
+
+- name: apply config files
+  template:
+    src: "{{ item }}"
+    dest: "{{ collectd_cloudwatch_module_path }}/cloudwatch/{{ item }}"
+  with_items:
+    - config/blocked_metrics
+    - config/plugin.conf
+    - config/whitelist.conf
+  notify: restart brew collectd
+  tags:
+    - collectd-cloudwatch-config
+
+- name: apply main collectd.conf file
+  template:
+    src: collectd.conf
+    dest: "{{ collectd_cloudwatch_etc_path }}/collectd.conf"
+  notify: restart brew collectd
+  tags:
+    - collectd-cloudwatch-main-config
+
+- name: start collectd
+  shell: brew services start collectd
+  become: yes
+  tags:
+    - collectd-cloudwatch-start-service

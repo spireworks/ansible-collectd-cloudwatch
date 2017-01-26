@@ -1,0 +1,2 @@
+---
+- include: "install-collectd-for-{{ ansible_os_family }}.yml"
