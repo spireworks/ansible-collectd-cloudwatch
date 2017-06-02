@@ -24,13 +24,39 @@
   tags:
     - collectd-cloudwatch
 
-- name: install pip
-  shell: "/usr/bin/python -m easy_install pip"
+- name: intall pip via package
+  apt:
+    state: present
+    name: python-pip
   become: yes
+  tags:
+    - collectd-cloudwatch
+    - collectd-cloudwatch-install-pip
 
-- name: install requests
-  shell: "/usr/bin/python -m easy_install requests"
+- name: pip install setuptools
+  pip:
+    name: setuptools
+    state: latest
   become: yes
+  tags:
+    - collectd-cloudwatch
+    - collectd-cloudwatch-install-pip-setuptools
+- name: pip install requests
+  pip:
+    name: requests
+    state: latest
+  become: yes
+  tags:
+    - collectd-cloudwatch
+    - collectd-cloudwatch-install-pip-requests
+
+# - name: install pip
+#   shell: "/usr/bin/python -m easy_install pip"
+#   become: yes
+#
+# - name: install requests
+#   shell: "/usr/bin/python -m easy_install requests"
+#   become: yes
 
 - name: apply collectd-cloudwatch.conf
   template:
