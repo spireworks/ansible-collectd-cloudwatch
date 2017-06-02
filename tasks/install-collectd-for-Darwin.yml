@@ -39,6 +39,9 @@
   file:
     state: directory
     path: "{{ collectd_cloudwatch_module_path }}"
+    owner: "{{ ansible_user }}"
+    recurse: yes
+  become: yes
   tags:
     - collectd-cloudwatch-dirs
 
@@ -54,6 +57,7 @@
   file:
     state: directory
     path: "{{ collectd_cloudwatch_module_path }}/cloudwatch/config"
+  become: yes
   tags:
     - collectd-cloudwatch-dirs
 
@@ -66,6 +70,7 @@
     - config/plugin.conf
     - config/whitelist.conf
   notify: restart brew collectd
+  become: yes
   tags:
     - collectd-cloudwatch-config
 
@@ -74,6 +79,7 @@
     src: collectd.conf
     dest: "{{ collectd_cloudwatch_etc_path }}/collectd.conf"
   notify: restart brew collectd
+  become: yes
   tags:
     - collectd-cloudwatch-main-config
 
